@@ -6,7 +6,6 @@ import {
   FileText, 
   MessageSquare, 
   Loader2, 
-  AlertCircle,
   Bot,
   User,
   Trash2,

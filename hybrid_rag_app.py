@@ -336,32 +336,3 @@ Answer:""",
     def get_supported_formats(self) -> List[str]:
         """Get list of supported file formats."""
         return self.doc_processor.get_supported_formats()
-
-
-def main():
-    """Main function to demonstrate the Hybrid RAG application."""
-    # Initialize the RAG app
-    rag_app = HybridRAGApp()
-
-    print("=== Hybrid RAG Application ===")
-    print(f"Supported file formats: {', '.join(rag_app.get_supported_formats())}")
-
-    # Example usage
-    print("\n1. Adding documents...")
-    # You can add files or directories here
-    # processing_stats = rag_app.add_documents(["path/to/your/documents"])
-    # print(f"Processing stats: {processing_stats}")
-
-    print("\n2. Querying the system...")
-    # Example query
-    # result = rag_app.query("What is the main topic of the documents?")
-    # print(f"Answer: {result['answer']}")
-    # print(f"Sources: {len(result['sources'])} documents")
-
-    print("\n3. Index statistics...")
-    stats = rag_app.get_index_stats()
-    print(f"Index stats: {stats}")
-
-
-if __name__ == "__main__":
-    main()

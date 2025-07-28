@@ -229,4 +229,14 @@ def clear_chat_memory():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=4001, debug=False)
+    # Development server - use production_server.py for production
+    port = int(os.getenv('PORT', 4001))
+    debug = os.getenv('FLASK_ENV') == 'development'
+    
+    print(f"🚀 Starting Adaptive RAG API Server...")
+    print(f"📍 Port: {port}")
+    print(f"🔧 Debug: {debug}")
+    print(f"🌍 Environment: {os.getenv('FLASK_ENV', 'development')}")
+    print("=" * 50)
+    
+    app.run(host="0.0.0.0", port=port, debug=debug, threaded=True)
