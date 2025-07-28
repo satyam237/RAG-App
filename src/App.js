@@ -20,6 +20,15 @@ import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:4001';
 
+// Helper function to format file size
+const formatFileSize = (bytes) => {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+};
+
 // Component for formatted AI response
 const FormattedResponse = ({ content }) => {
   const formatResponse = (text) => {
@@ -197,6 +206,7 @@ function App() {
   const [uploadStatus, setUploadStatus] = useState('');
   const [stats, setStats] = useState({ total_vector_count: 0 });
   const [error, setError] = useState('');
+  const [uploadedDocuments, setUploadedDocuments] = useState([]);
   const fileInputRef = useRef(null);
 
   const initializeApp = async () => {
@@ -240,6 +250,16 @@ function App() {
 
       if (response.data.success) {
         setUploadStatus(`Successfully uploaded ${response.data.stats.successful_files} files!`);
+        
+        // Add uploaded documents to the list
+        const newDocuments = selectedFiles.map(file => ({
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          uploadedAt: new Date().toLocaleString()
+        }));
+        setUploadedDocuments(prev => [...prev, ...newDocuments]);
+        
         setSelectedFiles([]);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
@@ -265,6 +285,7 @@ function App() {
       await axios.post(`${API_BASE_URL}/clear`);
       setStats({ total_vector_count: 0 });
       setChatHistory([]);
+      setUploadedDocuments([]);
       setUploadStatus('Index cleared successfully!');
     } catch (err) {
       setUploadStatus(`Failed to clear index: ${err.message}`);
@@ -341,7 +362,7 @@ function App() {
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Adaptive RAG</h1>
                 <p className="text-sm text-gray-500">
-                  {stats.total_vector_count} documents indexed
+                  {uploadedDocuments.length > 0 ? `${uploadedDocuments.length} documents uploaded` : `${stats.total_vector_count} documents indexed`}
                 </p>
               </div>
             </div>
@@ -490,10 +511,10 @@ function App() {
                     />
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="btn-secondary w-full"
+                      className="btn-secondary w-full flex items-center justify-center space-x-2"
                     >
-                      <Upload className="w-4 h-4 mr-2" />
-                      Select Files
+                      <Upload className="w-4 h-4" />
+                      <span>Select Files</span>
                     </button>
                   </div>
                   
@@ -511,9 +532,10 @@ function App() {
                       </div>
                       <button
                         onClick={handleFileUpload}
-                        className="btn-primary w-full"
+                        className="btn-primary w-full flex items-center justify-center space-x-2"
                       >
-                        Upload Files
+                        <Upload className="w-4 h-4" />
+                        <span>Upload Files</span>
                       </button>
                     </div>
                   )}
@@ -527,6 +549,32 @@ function App() {
                         : 'bg-blue-50 text-blue-700'
                     }`}>
                       {uploadStatus}
+                    </div>
+                  )}
+                  
+                  {/* Uploaded Documents Display */}
+                  {uploadedDocuments.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">
+                        Documents in Chat ({uploadedDocuments.length})
+                      </h4>
+                      <div className="max-h-32 overflow-y-auto space-y-2">
+                        {uploadedDocuments.map((doc, index) => (
+                          <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded-lg">
+                            <div className="flex items-center space-x-2 flex-1 min-w-0">
+                              <FileText className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium text-gray-800 truncate" title={doc.name}>
+                                  {doc.name}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {formatFileSize(doc.size)} • {doc.uploadedAt}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -544,6 +592,17 @@ function App() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Key Features</h3>
                 
                 <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                  {uploadedDocuments.length > 0 && (
+                    <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 p-3 rounded-lg">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <FileText className="w-4 h-4 text-emerald-600" />
+                        <span className="font-medium text-emerald-800">Active Documents</span>
+                      </div>
+                      <p className="text-xs text-emerald-700">
+                        {uploadedDocuments.length} document{uploadedDocuments.length !== 1 ? 's' : ''} ready for chat
+                      </p>
+                    </div>
+                  )}
                   <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-3 rounded-lg">
                     <div className="flex items-center space-x-2 mb-2">
                       <Database className="w-4 h-4 text-blue-600" />
