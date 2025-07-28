@@ -47,35 +47,38 @@ class QueryClassifier:
     def classify_query(self, query: str) -> QueryClassification:
         """Classify a query using LLM-based reasoning."""
 
-        # Define the classification function
+        # Define the classification function with correct format
         classification_function = {
-            "name": "classify_query",
-            "description": "Classify a user query to determine the best processing method",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "classification": {
-                        "type": "string",
-                        "enum": [
-                            "GENERAL",
-                            "WEBSEARCH",
-                            "VECTORSTORE",
-                            "VAGUE_DOCUMENT",
-                        ],
-                        "description": "The classification of the query",
+            "type": "function",
+            "function": {
+                "name": "classify_query",
+                "description": "Classify a user query to determine the best processing method",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "classification": {
+                            "type": "string",
+                            "enum": [
+                                "GENERAL",
+                                "WEBSEARCH",
+                                "VECTORSTORE",
+                                "VAGUE_DOCUMENT",
+                            ],
+                            "description": "The classification of the query",
+                        },
+                        "reasoning": {
+                            "type": "string",
+                            "description": "Detailed reasoning for the classification",
+                        },
+                        "confidence": {
+                            "type": "number",
+                            "minimum": 0.0,
+                            "maximum": 1.0,
+                            "description": "Confidence score for this classification",
+                        },
                     },
-                    "reasoning": {
-                        "type": "string",
-                        "description": "Detailed reasoning for the classification",
-                    },
-                    "confidence": {
-                        "type": "number",
-                        "minimum": 0.0,
-                        "maximum": 1.0,
-                        "description": "Confidence score for this classification",
-                    },
+                    "required": ["classification", "reasoning", "confidence"],
                 },
-                "required": ["classification", "reasoning", "confidence"],
             },
         }
 
@@ -94,7 +97,8 @@ class QueryClassifier:
                     Examples: "latest news about AI", "recent developments in quantum computing", "current stock prices"
 
                     VECTORSTORE: Queries that should be answered using uploaded documents and local knowledge.
-                    Examples: "what does the document say about", "summarize the uploaded files", "find information in my documents"
+                    Examples: "what does the document say about", "summarize the uploaded files", "find information in my documents", 
+                    "explain the model architecture from the PDF", "what does the paper say about", "analyze the document"
 
                     VAGUE_DOCUMENT: Queries that mention documents but are too vague to process effectively.
                     Examples: "help me with my documents", "answer questions about my files", "tell me about my docs"
@@ -135,7 +139,7 @@ class QueryClassifier:
             return self._fallback_classification(query)
 
     def _fallback_classification(self, query: str) -> QueryClassification:
-        """Fallback keyword-based classification."""
+        """Fallback keyword-based classification with improved document detection."""
         query_lower = query.lower().strip()
 
         # General conversation patterns
@@ -186,7 +190,60 @@ class QueryClassifier:
             "tell me about my",
         ]
 
-        # Check patterns
+        # Document-specific patterns (should go to VECTORSTORE)
+        document_patterns = [
+            "pdf",
+            "document",
+            "paper",
+            "research",
+            "article",
+            "text",
+            "content",
+            "information",
+            "data",
+            "file",
+            "upload",
+            "explain",
+            "analyze",
+            "summarize",
+            "what does",
+            "what is",
+            "how does",
+            "describe",
+            "tell me about",
+            "find",
+            "search",
+            "extract",
+            "identify",
+            "compare",
+            "contrast",
+            "discuss",
+            "examine",
+            "review",
+            "study",
+            "investigate",
+            "explore",
+            "understand",
+            "learn about",
+            "get information",
+            "retrieve",
+            "obtain",
+            "access",
+            "read",
+            "parse",
+            "process",
+            "architecture",
+            "model",
+            "mechanism",
+            "part",
+            "section",
+            "chapter",
+            "figure",
+            "table",
+            "diagram",
+        ]
+
+        # Check patterns in order of priority
         for pattern in general_patterns:
             if pattern in query_lower:
                 return QueryClassification(
@@ -211,16 +268,14 @@ class QueryClassifier:
                     confidence=0.7,
                 )
 
-        # Default to vectorstore for document-related queries
-        if any(
-            word in query_lower
-            for word in ["document", "file", "upload", "content", "information"]
-        ):
-            return QueryClassification(
-                classification="VECTORSTORE",
-                reasoning="Query appears to be about uploaded documents",
-                confidence=0.6,
-            )
+        # Check for document-specific patterns (highest priority for document queries)
+        for pattern in document_patterns:
+            if pattern in query_lower:
+                return QueryClassification(
+                    classification="VECTORSTORE",
+                    reasoning=f"Query contains document-related pattern: '{pattern}'",
+                    confidence=0.8,
+                )
 
         # Default to general for unknown queries
         return QueryClassification(
